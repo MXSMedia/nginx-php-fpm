@@ -1,6 +1,6 @@
 FROM php:7.1.12-fpm-alpine
 
-LABEL maintainer="Ric Harvey <ric@ngd.io>"
+LABEL maintainer="Daniel Collins <malkir@gmail.com>"
 
 ENV php_conf /usr/local/etc/php-fpm.conf
 ENV fpm_conf /usr/local/etc/php-fpm.d/www.conf
@@ -37,19 +37,14 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     --with-http_realip_module \
     --with-http_addition_module \
     --with-http_sub_module \
-    --with-http_dav_module \
     --with-http_flv_module \
     --with-http_mp4_module \
     --with-http_gunzip_module \
     --with-http_gzip_static_module \
-    --with-http_random_index_module \
     --with-http_secure_link_module \
     --with-http_stub_status_module \
     --with-http_auth_request_module \
-    --with-http_xslt_module=dynamic \
-    --with-http_image_filter_module=dynamic \
     --with-http_geoip_module=dynamic \
-    --with-http_perl_module=dynamic \
     --with-threads \
     --with-stream \
     --with-stream_ssl_module \
@@ -79,7 +74,6 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     curl \
     gnupg \
     libxslt-dev \
-    gd-dev \
     geoip-dev \
     perl-dev \
     luajit-dev \
@@ -110,10 +104,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && ./configure $CONFIG --with-debug \
   && make -j$(getconf _NPROCESSORS_ONLN) \
   && mv objs/nginx objs/nginx-debug \
-  && mv objs/ngx_http_xslt_filter_module.so objs/ngx_http_xslt_filter_module-debug.so \
-  && mv objs/ngx_http_image_filter_module.so objs/ngx_http_image_filter_module-debug.so \
   && mv objs/ngx_http_geoip_module.so objs/ngx_http_geoip_module-debug.so \
-  && mv objs/ngx_http_perl_module.so objs/ngx_http_perl_module-debug.so \
   && mv objs/ngx_stream_geoip_module.so objs/ngx_stream_geoip_module-debug.so \
   && ./configure $CONFIG \
   && make -j$(getconf _NPROCESSORS_ONLN) \
@@ -124,10 +115,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && install -m644 html/index.html /usr/share/nginx/html/ \
   && install -m644 html/50x.html /usr/share/nginx/html/ \
   && install -m755 objs/nginx-debug /usr/sbin/nginx-debug \
-  && install -m755 objs/ngx_http_xslt_filter_module-debug.so /usr/lib/nginx/modules/ngx_http_xslt_filter_module-debug.so \
-  && install -m755 objs/ngx_http_image_filter_module-debug.so /usr/lib/nginx/modules/ngx_http_image_filter_module-debug.so \
   && install -m755 objs/ngx_http_geoip_module-debug.so /usr/lib/nginx/modules/ngx_http_geoip_module-debug.so \
-  && install -m755 objs/ngx_http_perl_module-debug.so /usr/lib/nginx/modules/ngx_http_perl_module-debug.so \
   && install -m755 objs/ngx_stream_geoip_module-debug.so /usr/lib/nginx/modules/ngx_stream_geoip_module-debug.so \
   && ln -s ../../usr/lib/nginx/modules /etc/nginx/modules \
   && strip /usr/sbin/nginx* \
@@ -181,23 +169,16 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     musl-dev \
     linux-headers \
     libmcrypt-dev \
-    libpng-dev \
     icu-dev \
     libpq \
     libxslt-dev \
-    libffi-dev \
-    freetype-dev \
-    sqlite-dev \
-    libjpeg-turbo-dev && \
-    docker-php-ext-configure gd \
-      --with-gd \
-      --with-freetype-dir=/usr/include/ \
-      --with-png-dir=/usr/include/ \
-      --with-jpeg-dir=/usr/include/ && \
-    #curl iconv session
-    docker-php-ext-install pdo_mysql pdo_sqlite mysqli mcrypt gd exif intl xsl json soap dom zip opcache && \
+    libffi-dev && \
+    docker-php-ext-install mcrypt exif intl json soap dom zip opcache && \
     pecl install xdebug && \
+    pecl install mongodb && \
+    pecl clear-cache && \
     docker-php-source delete && \
+    docker-php-ext-enable mongodb && \
     mkdir -p /etc/nginx && \
     mkdir -p /var/www/app && \
     mkdir -p /run/nginx && \
@@ -250,9 +231,6 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
         -e "s/listen = 127.0.0.1:9000/listen = \/var\/run\/php-fpm.sock/g" \
         -e "s/^;clear_env = no$/clear_env = no/" \
         ${fpm_conf}
-#    ln -s /etc/php7/php.ini /etc/php7/conf.d/php.ini && \
-#    find /etc/php7/conf.d/ -name "*.ini" -exec sed -i -re 's/^(\s*)#(.*)/\1;\2/g' {} \;
-
 
 # Add Scripts
 ADD scripts/start.sh /start.sh
